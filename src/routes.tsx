@@ -1,42 +1,80 @@
 import React from 'react';
 
-// Admin Imports
-
 // Icon Imports
 import {
   MdHome,
-  MdOutlineShoppingCart,
+  MdShoppingCart,
   MdBarChart,
+  MdCategory,
+  MdLocalOffer,
+  MdPeople,
+  MdOutlineShoppingBag,
+  MdSettings,
   MdPerson,
   MdLock,
+  MdHelp,
 } from 'react-icons/md';
 
 const routes = [
   {
-    name: 'Main Dashboard',
+    name: 'Dashboard',
     layout: '/admin',
-    path: 'default',
+    path: '',
     icon: <MdHome className="h-6 w-6" />,
   },
   {
-    name: 'NFT Marketplace',
+    name: 'Products',
     layout: '/admin',
-    path: 'nft-marketplace',
-    icon: <MdOutlineShoppingCart className="h-6 w-6" />,
-
-    secondary: true,
+    path: 'products',
+    icon: <MdShoppingCart className="h-6 w-6" />,
   },
   {
-    name: 'Data Tables',
+    name: 'Categories',
     layout: '/admin',
+    path: 'categories',
+    icon: <MdCategory className="h-6 w-6" />,
+  },
+  {
+    name: 'Orders',
+    layout: '/admin',
+    path: 'orders',
+    icon: <MdOutlineShoppingBag className="h-6 w-6" />,
+  },
+  {
+    name: 'Customers',
+    layout: '/admin',
+    path: 'customers',
+    icon: <MdPeople className="h-6 w-6" />,
+  },
+  // {
+  //   name: 'Discounts',
+  //   layout: '/admin',
+  //   path: 'discounts',
+  //   icon: <MdLocalOffer className="h-6 w-6" />,
+  // },
+  {
+    name: 'Reports & Analytics',
+    layout: '/admin',
+    path: 'reports',
     icon: <MdBarChart className="h-6 w-6" />,
-    path: 'data-tables',
   },
   {
     name: 'Profile',
     layout: '/admin',
     path: 'profile',
     icon: <MdPerson className="h-6 w-6" />,
+  },
+  {
+    name: 'Settings',
+    layout: '/admin',
+    path: 'settings',
+    icon: <MdSettings className="h-6 w-6" />,
+  },
+  {
+    name: 'Support',
+    layout: '/admin',
+    path: 'support',
+    icon: <MdHelp className="h-6 w-6" />,
   },
   {
     name: 'Sign In',
@@ -51,4 +89,5 @@ const routes = [
     icon: <MdHome className="h-6 w-6" />,
   },
 ];
+
 export default routes;
