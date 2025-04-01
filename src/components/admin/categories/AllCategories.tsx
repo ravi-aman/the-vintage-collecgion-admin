@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useGetShowCategoryQuery } from "../../../redux/features/categoryApi";
+import CategoryDropdown from "./CategoryDropdown";
 
 const AllCategories = () => {
     const { data: categories, isLoading, isError } = useGetShowCategoryQuery("electronics");
@@ -50,10 +51,12 @@ const AllCategories = () => {
                         {categories.result.map((category: any) => (
                             <div key={category._id} className="p-4 border rounded-lg shadow-md bg-white">
                                 {/* Category Image */}
+
                                 <div
                                     className="cursor-pointer"
-                                    onClick={() => handleCategoryRoute(category.parent)}
+                                    // onClick={() => handleCategoryRoute(category.parent)}
                                 >
+                                    <CategoryDropdown category={category} />
                                     <Image
                                         src={category.img}
                                         alt={category.parent}
