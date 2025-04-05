@@ -1,5 +1,4 @@
-"use client"; // Required for client-side fetching in Next.js
-
+"use client"; 
 import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
