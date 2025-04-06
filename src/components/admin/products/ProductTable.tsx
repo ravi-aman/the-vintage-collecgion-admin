@@ -75,6 +75,8 @@ import {
 } from "lucide-react";
 import * as XLSX from 'xlsx';
 import AddProduct from "./addProducts";
+import { useDeleteMultipleProductsMutation } from "../../../redux/features/productApi";
+import { toast } from "hooks/use-toast";
 
 export interface Product {
     id: string;
@@ -122,7 +124,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
     onProductCreate,
     categories = [],
     vendors = [],
-    statusOptions = ["active", "inactive", "draft", "archived", "out_of_stock","in_stock"],
+    statusOptions = ["active", "inactive", "draft", "archived", "out_of_stock", "in_stock"],
     salesChannels = ["online", "in_store", "marketplace", "wholesale"]
 }) => {
     // State variables
@@ -153,9 +155,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
             filteredData = filteredData.filter(product =>
                 product.name.toLowerCase().includes(query) ||
                 product.sku?.toLowerCase().includes(query) ||
-                product.vendor.toLowerCase().includes(query) ||
-                product.category.toLowerCase().includes(query) ||
-                product.tags?.some(tag => tag.toLowerCase().includes(query))
+                product.vendor?.toLowerCase().includes(query) ||
+                product.category?.toLowerCase().includes(query) ||
+                Array.isArray(product.tags) && product.tags.some(tag => tag.toLowerCase().includes(query))
             );
         }
 
@@ -382,27 +384,38 @@ const ProductTable: React.FC<ProductTableProps> = ({
             setIsRefreshing(false);
         }, 1000);
     };
+    const [deleteMultipleProducts, { isLoading: isDeletingMultiple }] = useDeleteMultipleProductsMutation();
 
+    console.log("Selected Rows:", selectedRows);
     const handleDeleteSelected = async () => {
         if (selectedRows.length === 0) return;
 
-        if (onProductDelete) {
-            try {
-                await onProductDelete(selectedRows);
-                setSelectedRows([]);
-                setIsDeleteDialogOpen(false);
-                // Would add success toast here
-            } catch (error) {
-                console.error("Delete failed:", error);
-                // Would add error toast here
-            }
-        } else {
-            // Demo functionality without actual API
-            console.log("Deleting products:", selectedRows);
+        try {
+            // Call backend to delete products in bulk
+            const res = await deleteMultipleProducts(selectedRows).unwrap();
+
+            // Clear selected rows and close dialog
             setSelectedRows([]);
             setIsDeleteDialogOpen(false);
+
+            // Success toast
+            toast({
+                title: "Deleted Successfully",
+                description: `${selectedRows.length} products have been deleted.`,
+                variant: "default",
+            });
+        } catch (error) {
+            console.error("Delete failed:", error);
+
+            // Error toast
+            toast({
+                title: "Error",
+                description: "Failed to delete selected products.",
+                variant: "destructive",
+            });
         }
     };
+
 
     // Render skeletons for loading state
     if (isLoading) {
@@ -508,7 +521,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
                                     {filterPresets.length > 0 && <DropdownMenuSeparator />}
                                     <Dialog>
                                         <DialogTrigger asChild>
-                                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                            <DropdownMenuItem
+                                                onSelect={(e) => e.preventDefault()}>
                                                 Save current filters
                                             </DropdownMenuItem>
                                         </DialogTrigger>

@@ -73,6 +73,18 @@ export const productApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Products'],
     }),
+    // delete multiple products
+    deleteMultipleProducts: builder.mutation({
+      query: (ids) => ({
+        url: `${process.env.NEXT_PUBLIC_API_BASE_BACKEND_URL}/api/product/delete-multiple`,
+        method: 'DELETE',
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: { ids }, // 👈 expects: { ids: [id1, id2, ...] }
+      }),
+      invalidatesTags: ['Products'],
+    }),
   }),
 });
 
@@ -88,4 +100,5 @@ export const {
   useAddAllProductsMutation,
   useUpdateProductMutation,
   useDeleteProductMutation,
+  useDeleteMultipleProductsMutation
 } = productApi;

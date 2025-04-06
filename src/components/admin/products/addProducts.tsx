@@ -16,9 +16,12 @@ import { Plus, Trash, Upload, X, Info, Tag, Calendar as CalendarIcon, CheckCircl
 import Image from "next/image";
 
 import { useGetActiveBrandsQuery } from "../../../redux/features/brandApi";
-
+import { useGetAllCategoriesQuery } from "../../../redux/features/categoryApi";
 import { useAddProductMutation } from "../../../redux/features/productApi";
 import { uploadMultipleToCloudinary } from "utils/uploadToCloudinary";
+import { uploadToCloudinary } from "utils/uploadToCloudinary";
+import { toast } from "react-toastify";
+import ColorVariantsManager from "./varients";
 
 
 export default function AddProduct() {
@@ -40,13 +43,13 @@ export default function AddProduct() {
     const [videoId, setVideoId] = useState("");
     const [featured, setFeatured] = useState(false);
 
+
     // Categories and brand
     const [parent, setParent] = useState("");
     const [children, setChildren] = useState("");
     const [brandName, setBrandName] = useState("");
     const [brandId, setBrandId] = useState("");
-    const [categoryName, setCategoryName] = useState("");
-    const [categoryId, setCategoryId] = useState("");
+
 
     // Sizes and tags
     const [sizes, setSizes] = useState([]);
@@ -90,11 +93,20 @@ export default function AddProduct() {
         setSlug(title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, ''));
     }, [title]);
 
+
+
+    const [mainImageUrl, setMainImageUrl] = useState("");
+
     // Handle main image upload
-    const handleMainImageUpload = (e) => {
+    const handleMainImageUpload = async (e) => {
         const file = e.target.files[0];
         if (file) {
             setMainImage(file);
+        }
+        const uploadedUrl = await uploadToCloudinary(file);
+        if (uploadedUrl) {
+            setMainImageUrl(uploadedUrl);
+            console.log("Uploaded URL:", uploadedUrl);
         }
     };
 
@@ -108,6 +120,11 @@ export default function AddProduct() {
     const removeAdditionalImage = (index) => {
         setAdditionalImages(additionalImages.filter((_, i) => i !== index));
     };
+
+
+
+    const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
 
     // Add size
     const addSize = () => {
@@ -181,22 +198,42 @@ export default function AddProduct() {
     };
 
     // get the brand for option
+    //categories.....................
+
+    const [selectedCategory, setSelectedCategory] = useState({ id: "", name: "" });
+    const [selectedCategoryId, setSelectedCategoryId] = useState("");
+    const [selectedCategoryName, setSelectedCategoryName] = useState("");
+    const [selectedChildrenOptions, setSelectedChildrenOptions] = useState([]);
+    const [selectedSubCategory, setSelectedSubCategory] = useState("");
+
+    // get categories 
+    const { data: categorydata, isLoading: categoriesLoading, isError: categoriesError } = useGetAllCategoriesQuery({});
+    const categories = categorydata?.result || []; // Ensure `categories` is an array
 
 
+    // get the brand for option
+    // brands........................ 
 
-    // brands 
     const [selectedBrand, setSelectedBrand] = useState({ id: "", name: "" });
-
-    // Fetch only active brands
+    // get brands
     const { data, isLoading: brandsLoading, isError: brandsError } = useGetActiveBrandsQuery({});
     const brands = data?.result || []; // Ensure `brands` is an array
-
     // State to store selected brand ID and name
     const [selectedBrandId, setSelectedBrandId] = useState("");
     const [selectedBrandName, setSelectedBrandName] = useState("");
 
 
-    // Handle form submission
+
+    //upload to cloudinary
+
+
+
+
+
+
+
+
+    // Handle form submission.............
 
     const [addProduct, { isLoading: productLoading, isError: productError }] = useAddProductMutation();
 
@@ -205,12 +242,8 @@ export default function AddProduct() {
         e.preventDefault();
         setIsSubmitting(true);
 
-
-        console.log("hereeeeeeeeeeee clicked")
-        // let imageUrl = formData.img;
-        // if (imageFile) {
-        //     imageUrl = await uploadMultipleToCloudinary(imageFile);
-        // }
+        console.log("Form submitted with values:")
+     
 
 
 
@@ -227,23 +260,26 @@ export default function AddProduct() {
             productType?: string;
         };
 
-        const validationErrors: ValidationErrors = {};
-        if (!title) validationErrors.title = "Title is required";
-        if (!price) validationErrors.price = "Price is required";
-        if (!unit) validationErrors.unit = "Unit is required";
-        if (!mainImage) validationErrors.mainImage = "Main image is required";
-        if (!parent) validationErrors.parent = "Parent category is required";
-        if (!children) validationErrors.children = "Sub-category is required";
-        if (!brandName) validationErrors.brandName = "Brand is required";
-        if (!description) validationErrors.description = "Description is required";
-        if (!productType) validationErrors.productType = "Product type is required";
+        // const validationErrors: ValidationErrors = {};
+        // if (!title) validationErrors.title = "Title is required";
+        // if (!price) validationErrors.price = "Price is required";
+        // if (!unit) validationErrors.unit = "Unit is required";
+        // if (!mainImage) validationErrors.mainImage = "Main image is required";
+        // if (!parent) validationErrors.parent = "Parent category is required";
+        // if (!children) validationErrors.children = "Sub-category is required";
+        // if (!brandName) validationErrors.brandName = "Brand is required";
+        // if (!description) validationErrors.description = "Description is required";
+        // if (!productType) validationErrors.productType = "Product type is required";
 
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            setIsSubmitting(false);
-            return;
-        }
+        // if (Object.keys(validationErrors).length > 0) {
+        //     toast.error("Please fill all required fields.");
+        //     setErrors(validationErrors);
+        //     setIsSubmitting(false);
+        //     return;
+        // }
 
+
+        console.log("validated")
         // Prepare form data
         const formData = {
             title,
@@ -254,28 +290,32 @@ export default function AddProduct() {
             discount: discount ? parseFloat(discount) : undefined,
             quantity: parseInt(quantity),
             unit,
-            productType:productType.toLowerCase(),
+            productType: productType.toLowerCase(),
             status,
             videoId,
             featured,
-            parent,
-            children,
+            parent: selectedBrandName,
+            children: children,
             brand: {
-                name: brandName,
-                id: brandId
+                name: selectedBrandName,
+                id: selectedBrandId
             },
             category: {
-                name: categoryName,
-                id: categoryId
+                name: selectedCategoryName,
+                id: selectedCategoryId
             },
             sizes,
             tags,
-            img: mainImage ? URL.createObjectURL(mainImage) : "",
+            img: mainImageUrl,
             imageURLs: colorVariants.map(variant => ({
-                color: variant.color,
+                color: {
+                    name: variant.color.name,
+                    clrCode: variant.color.clrCode
+                },
                 img: variant.img,
-                sizes: variant.sizes
+                sizes: variant.sizes.map(size => size)
             })),
+
             offerDate: {
                 startDate: new Date('2025-04-01T18:30:00.000Z').toISOString().replace('Z', '+00:00'),
                 endDate: new Date('2025-04-23T18:30:00.000Z').toISOString().replace('Z', '+00:00')
@@ -284,7 +324,6 @@ export default function AddProduct() {
         };
 
         console.log("Form Data:", formData); // Log the form data for debugging
-
 
 
         try {
@@ -380,62 +419,64 @@ export default function AddProduct() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
+                                    {/* Parent Category */}
                                     <div className="space-y-2">
                                         <Label htmlFor="parent">Parent Category <span className="text-red-500">*</span></Label>
-                                        <Select onValueChange={setParent} value={parent}>
-                                            <SelectTrigger className={errors.parent ? "border-red-500" : ""}>
-                                                <SelectValue placeholder="Select parent category" />
+                                        <Select
+                                            value={selectedCategoryId}
+                                            onValueChange={(value) => {
+                                                const selected = categories.find(cat => String(cat._id) === value);
+                                                if (selected) {
+                                                    setSelectedCategoryId(selected._id);
+                                                    setSelectedCategoryName(selected.parent); // as per schema
+                                                    setChildren(""); // reset sub-category when parent changes
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={categoriesLoading ? "Loading..." : "Select category"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="electronics">Electronics</SelectItem>
-                                                <SelectItem value="clothing">Clothing</SelectItem>
-                                                <SelectItem value="home">Home & Kitchen</SelectItem>
-                                                <SelectItem value="books">Books</SelectItem>
+                                                {categoriesLoading ? (
+                                                    <SelectItem disabled value="">Loading...</SelectItem>
+                                                ) : categoriesError ? (
+                                                    <SelectItem disabled value="">Error loading categories</SelectItem>
+                                                ) : (
+                                                    categories.map((cat) => (
+                                                        <SelectItem key={cat._id} value={String(cat._id)}>
+                                                            {cat.parent}
+                                                        </SelectItem>
+                                                    ))
+                                                )}
                                             </SelectContent>
                                         </Select>
                                         {errors.parent && <p className="text-red-500 text-sm">{errors.parent}</p>}
                                     </div>
+
+                                    {/* Sub-Category */}
                                     <div className="space-y-2">
                                         <Label htmlFor="children">Sub-Category <span className="text-red-500">*</span></Label>
-                                        <Select onValueChange={setChildren} value={children}>
+                                        <Select
+                                            value={children}
+                                            onValueChange={setChildren}
+                                            disabled={!selectedCategoryId}
+                                        >
                                             <SelectTrigger className={errors.children ? "border-red-500" : ""}>
-                                                <SelectValue placeholder="Select sub-category" />
+                                                <SelectValue placeholder={!selectedCategoryId ? "Select parent first" : "Select sub-category"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {parent === "electronics" && (
-                                                    <>
-                                                        <SelectItem value="smartphones">Smartphones</SelectItem>
-                                                        <SelectItem value="laptops">Laptops</SelectItem>
-                                                        <SelectItem value="accessories">Accessories</SelectItem>
-                                                    </>
-                                                )}
-                                                {parent === "clothing" && (
-                                                    <>
-                                                        <SelectItem value="mens">Men's</SelectItem>
-                                                        <SelectItem value="womens">Women's</SelectItem>
-                                                        <SelectItem value="kids">Kids</SelectItem>
-                                                    </>
-                                                )}
-                                                {parent === "home" && (
-                                                    <>
-                                                        <SelectItem value="furniture">Furniture</SelectItem>
-                                                        <SelectItem value="decor">Decor</SelectItem>
-                                                        <SelectItem value="appliances">Appliances</SelectItem>
-                                                    </>
-                                                )}
-                                                {parent === "books" && (
-                                                    <>
-                                                        <SelectItem value="fiction">Fiction</SelectItem>
-                                                        <SelectItem value="nonfiction">Non-Fiction</SelectItem>
-                                                        <SelectItem value="children">Children's</SelectItem>
-                                                    </>
+                                                {selectedCategoryId && (
+                                                    categories.find(cat => cat._id === selectedCategoryId)?.children?.map((child, index) => (
+                                                        <SelectItem key={index} value={child}>
+                                                            {child}
+                                                        </SelectItem>
+                                                    ))
                                                 )}
                                             </SelectContent>
                                         </Select>
                                         {errors.children && <p className="text-red-500 text-sm">{errors.children}</p>}
                                     </div>
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="brand">Brand <span className="text-red-500">*</span></Label>
@@ -451,9 +492,9 @@ export default function AddProduct() {
                                                 setSelectedBrandId(selected._id);
                                                 setSelectedBrandName(selected.name);
 
-                                                // Console log the selected values
-                                                console.log("Selected Brand ID:", selected._id);
-                                                console.log("Selected Brand Name:", selected.name);
+                                                // // Console log the selected values
+                                                // console.log("Selected Brand ID:", selected._id);
+                                                // console.log("Selected Brand Name:", selected.name);
                                             }}
                                         >
                                             <SelectTrigger>
@@ -478,10 +519,10 @@ export default function AddProduct() {
                                         </Select>
 
 
-                                        {/* Display selected brand for testing */}
+                                        {/* Display selected brand for testing
                                         {selectedBrandId && (
                                             <p className="text-sm text-gray-700">Selected: {selectedBrandName} and  (ID: {selectedBrandId})</p>
-                                        )}
+                                        )} */}
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="productType">Product Type <span className="text-red-500">*</span></Label>
@@ -574,7 +615,7 @@ export default function AddProduct() {
                                     </CardContent>
                                 </Card>
 
-                                <Card>
+                                {/* <Card>
                                     <CardContent className="pt-6">
                                         <div className="space-y-4">
                                             <Label>Additional Product Images</Label>
@@ -616,192 +657,16 @@ export default function AddProduct() {
                                             </div>
                                         </div>
                                     </CardContent>
-                                </Card>
+                                </Card> */}
                             </div>
                         </TabsContent>
 
-                        {/* Variants Tab */}
                         <TabsContent value="variants">
-                            <div className="space-y-6">
-                                <Card>
-                                    <CardContent className="pt-6">
-                                        <Label>Available Sizes</Label>
-                                        <div className="flex flex-wrap gap-2 mt-2">
-                                            {sizes.map((size, index) => (
-                                                <Badge key={index} variant="outline" className="px-3 py-1 flex items-center gap-1">
-                                                    {size}
-                                                    <X
-                                                        size={14}
-                                                        className="cursor-pointer text-gray-500 hover:text-gray-700"
-                                                        onClick={() => removeSize(size)}
-                                                    />
-                                                </Badge>
-                                            ))}
-                                            <div className="flex items-center">
-                                                <Input
-                                                    value={newSize}
-                                                    onChange={(e) => setNewSize(e.target.value)}
-                                                    placeholder="Add size"
-                                                    className="w-24 h-8"
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={addSize}
-                                                    className="ml-2 h-8"
-                                                >
-                                                    Add
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card>
-                                    <CardContent className="pt-6">
-                                        <Label>Color Variants</Label>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                            {colorVariants.map((variant, index) => (
-                                                <div key={index} className="border rounded-lg p-4 relative">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="destructive"
-                                                        className="absolute top-2 right-2 h-6 w-6"
-                                                        onClick={() => removeColorVariant(index)}
-                                                    >
-                                                        <X size={14} />
-                                                    </Button>
-                                                    <div className="flex gap-4">
-                                                        <div
-                                                            className="w-16 h-16 rounded-md overflow-hidden border"
-                                                            style={{ backgroundColor: variant.color.clrCode }}
-                                                        >
-                                                            {variant.img && (
-                                                                <Image
-                                                                    src={variant.img}
-                                                                    alt={variant.color.name}
-                                                                    className="w-full h-full object-cover"
-                                                                    width={64}
-                                                                    height={64}
-                                                                />
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium">{variant.color.name}</p>
-                                                            <p className="text-sm text-gray-500">{variant.color.clrCode}</p>
-                                                            <div className="flex flex-wrap gap-1 mt-1">
-                                                                {variant.sizes.map((size, i) => (
-                                                                    <Badge key={i} variant="secondary" className="text-xs">
-                                                                        {size}
-                                                                    </Badge>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <div className="mt-4 border rounded-lg p-4">
-                                            <h4 className="font-medium mb-3">Add New Color Variant</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="colorName">Color Name</Label>
-                                                    <Input
-                                                        id="colorName"
-                                                        value={newColorName}
-                                                        onChange={(e) => setNewColorName(e.target.value)}
-                                                        placeholder="e.g. Midnight Blue"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="colorCode">Color Code</Label>
-                                                    <div className="flex gap-2">
-                                                        <div
-                                                            className="w-10 h-10 rounded-md border"
-                                                            style={{ backgroundColor: newColorCode }}
-                                                        />
-                                                        <Input
-                                                            id="colorCode"
-                                                            type="color"
-                                                            value={newColorCode}
-                                                            onChange={(e) => setNewColorCode(e.target.value)}
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="colorImage">Color Image</Label>
-                                                    {newColorImage ? (
-                                                        <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden">
-                                                            <Image
-                                                                src={URL.createObjectURL(newColorImage)}
-                                                                alt="Color variant"
-                                                                className="w-full h-full object-contain"
-                                                                width={20}
-                                                                height={20}
-                                                            />
-                                                            <Button
-                                                                size="icon"
-                                                                variant="destructive"
-                                                                className="absolute top-2 right-2 h-6 w-6"
-                                                                onClick={() => setNewColorImage(null)}
-                                                            >
-                                                                <X size={14} />
-                                                            </Button>
-                                                        </div>
-                                                    ) : (
-                                                        <div
-                                                            className="border border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50"
-                                                            onClick={() => document.getElementById('colorImage').click()}
-                                                        >
-                                                            <Upload className="h-6 w-6 mx-auto text-gray-400" />
-                                                            <p className="mt-1 text-xs text-gray-500">Upload Image</p>
-                                                            <Input
-                                                                id="colorImage"
-                                                                type="file"
-                                                                className="hidden"
-                                                                accept="image/*"
-                                                                onChange={(e) => setNewColorImage(e.target.files[0])}
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label>Available Sizes for this Color</Label>
-                                                    <div className="flex flex-wrap gap-2 mt-2">
-                                                        {sizes.map((size, index) => (
-                                                            <Badge
-                                                                key={index}
-                                                                variant={newColorSizes.includes(size) ? "default" : "outline"}
-                                                                className="px-3 py-1 cursor-pointer"
-                                                                onClick={() => {
-                                                                    if (newColorSizes.includes(size)) {
-                                                                        setNewColorSizes(newColorSizes.filter(s => s !== size));
-                                                                    } else {
-                                                                        setNewColorSizes([...newColorSizes, size]);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                {size}
-                                                            </Badge>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                type="button"
-                                                onClick={addColorVariant}
-                                                className="mt-4"
-                                                disabled={!newColorName || !newColorCode || !newColorImage}
-                                            >
-                                                <Plus className="mr-2 h-4 w-4" /> Add Color Variant
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                            <ColorVariantsManager
+                                colorVariants={colorVariants}
+                                setColorVariants={setColorVariants}
+                                sizes={availableSizes}
+                            />
                         </TabsContent>
 
                         {/* Inventory Tab */}
@@ -1009,38 +874,83 @@ export default function AddProduct() {
                     </Tabs>
 
                     <DialogFooter className="mt-6">
-                        <div className="flex items-center gap-4 w-full">
-                            <Button type="button" variant="outline" className="flex-1">
-                                Save as Draft
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="flex-1 bg-blue-600 hover:bg-blue-700"
-                                disabled={isSubmitting}
+                        <div className="flex flex-col gap-4 w-full">
+                            {/* Buttons */}
+                            <div className="flex items-center gap-4 w-full">
+                                <Button type="button" variant="outline" className="flex-1">
+                                    Save as Draft
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                    disabled={isSubmitting}
+                                    onClick={handleSubmit}
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <svg
+                                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <circle
+                                                    className="opacity-25"
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="10"
+                                                    stroke="currentColor"
+                                                    strokeWidth="4"
+                                                ></circle>
+                                                <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
+                                            </svg>
+                                            Processing...
+                                        </>
+                                    ) : isSuccess ? (
+                                        <>
+                                            <CheckCircle2 className="mr-2 h-4 w-4" />
+                                            Product Added!
+                                        </>
+                                    ) : (
+                                        'Publish Product'
+                                    )}
+                                </Button>
+                            </div>
 
-                                onClick={handleSubmit}
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            {/* Error Alert */}
+                            {errors.submit && (
+                                <div
+                                    className="w-full px-4 py-3 bg-red-100 border border-red-400 text-red-700 rounded relative"
+                                    role="alert"
+                                >
+                                    <strong className="font-bold">Oops! </strong>
+                                    <span className="block sm:inline">{errors.submit}</span>
+                                    <span
+                                        className="absolute top-0 bottom-0 right-0 px-4 py-3"
+                                        onClick={() => setErrors((prev) => ({ ...prev, submit: "" }))}
+                                        style={{ cursor: "pointer" }}
+                                    >
+                                        <svg
+                                            className="fill-current h-6 w-6 text-red-500"
+                                            role="button"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                        >
+                                            <title>Close</title>
+                                            <path d="M14.348 5.652a1 1 0 00-1.414 0L10 8.586 7.066 5.652a1 1 0 10-1.414 1.414L8.586 10l-2.934 2.934a1 1 0 101.414 1.414L10 11.414l2.934 2.934a1 1 0 001.414-1.414L11.414 10l2.934-2.934a1 1 0 000-1.414z" />
                                         </svg>
-                                        Processing...
-                                    </>
-                                ) : isSuccess ? (
-                                    <>
-                                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                                        Product Added!
-                                    </>
-                                ) : (
-                                    'Publish Product'
-                                )}
-                            </Button>
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </DialogFooter>
+
                 </form>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     );
 }
