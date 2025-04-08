@@ -294,7 +294,7 @@ export default function AddProduct() {
             status,
             videoId,
             featured,
-            parent: selectedBrandName,
+            parent: selectedCategoryName, // Ensure this is the intended variable for the parent category
             children: children,
             brand: {
                 name: selectedBrandName,

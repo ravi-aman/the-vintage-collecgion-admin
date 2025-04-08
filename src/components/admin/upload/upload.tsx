@@ -14,6 +14,7 @@ const ColorImageUploader = ({ onUpload }: { onUpload: (url: string) => void }) =
     const [localImage, setLocalImage] = useState<File | null>(null);
     const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [publicId, setPublicId] = useState<string | null>(null);
 
     const handleFileChange = async (file: File) => {
         setLocalImage(file);
@@ -22,8 +23,10 @@ const ColorImageUploader = ({ onUpload }: { onUpload: (url: string) => void }) =
         const urls = await uploadMultipleToCloudinary([file]);
 
         if (urls.length > 0) {
-            setUploadedUrl(urls[0]);
-            onUpload(urls[0]); 
+            const { url, public_id } = urls[0];
+            setUploadedUrl(url);
+            setPublicId(public_id);
+            onUpload(url); 
         }
 
         setLoading(false);
@@ -31,7 +34,7 @@ const ColorImageUploader = ({ onUpload }: { onUpload: (url: string) => void }) =
 
     const handleRemove = async () => {
         if (uploadedUrl) {
-            const success = await deleteImageFromCloudinary(uploadedUrl);
+            const success = await deleteImageFromCloudinary(publicId!);
             if (success) {
                 setLocalImage(null);
                 setUploadedUrl(null);
